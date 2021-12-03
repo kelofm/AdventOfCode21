@@ -2,11 +2,11 @@
 commands = [[l[0],int(l.strip()[l.rfind(' ')+1:])] for l in open("input").readlines()]
 
 # Compute aim at "forward" commands
-# and store it along with the value of the command
+# and store it along with the forward value
 forwardCommands = [[sum(v[1] for v in commands[:I] if v[0]=='d')-sum(v[1] for v in commands[:I] if v[0]=='u'),V[1]] for I,V in enumerate(commands) if V[0]=='f']
 
 # Execute "forward" commands
-# and represent the position on the complex plane
+# Position represented on the complex plane:
 #   real part: depth
 #   imag part: horizontal distance
 position = sum(pair[0]*pair[1] + pair[1]*1j for pair in forwardCommands)
