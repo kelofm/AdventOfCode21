@@ -1,0 +1,1 @@
+print((lambda l:l[0][0]*l[1][0])((lambda r:lambda l,c:r(r,l,11,c))(lambda s,l,i,c:[l[0] if len(l[0])<2 else s(s,[list(filter(lambda n:n & 1<<i==c(l[0],i),l[0])),[]],i-1,c)[0],l[1] if len(l[1])<2 else s(s,[[],list(filter(lambda n:n & 1<<i!=c(l[1],i),l[1]))],i-1,c)[1]])([[int(l,2) for l in open("input")]]*2,lambda l,i:0 if len(l)/2 > sum(1 for u in l if u&(1<<i)) else 1<<i)))
