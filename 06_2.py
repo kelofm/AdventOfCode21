@@ -1,0 +1,1 @@
+print((lambda R:lambda B,i,m:R(R,B,i,m))(lambda s,B,i,m:sum(B) if i==m else s(s,[b for b in B[1:7]+[B[0]+B[7]]+[B[8]]+[B[0]]],i+1,m))((lambda l:[l.count(v) for v in range(9)])([int(v) for v in open("input").read().split(',')]),0,256))
