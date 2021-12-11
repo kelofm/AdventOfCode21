@@ -1,0 +1,1 @@
+print((lambda c: c.real*c.imag)((lambda l: sum(v[0]*v[1]+v[1]*1j for v in l))((lambda l: [[sum(v[1] for v in l[:I] if v[0]=='d')-sum(v[1] for v in l[:I] if v[0]=='u'),V[1]] for I,V in enumerate(l) if V[0]=='f'])([[l[0],int(l.strip()[l.rfind(' ')+1:])] for l in open("input").readlines()]))))
