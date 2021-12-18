@@ -1,0 +1,1 @@
+print((lambda C:max(C)-min(C))((lambda S:[S.count(c) for c in set(S)])((lambda r:lambda S,M,i:r(r,S,M,i))(lambda s,S,M,i:s(s,"".join(l+M.get(l+r,'') for l,r in zip(S[:-1],S[1:]))+S[-1],M,i+1) if i<10 else S)(*(lambda f:(f.readline().strip(),dict([(p,i) for p,i in [tuple(l.strip().split(" -> "))]][0] for l in f if l.strip())))(open("input")),0))))
