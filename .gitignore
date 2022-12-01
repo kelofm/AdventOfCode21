@@ -1,1 +1,8 @@
+*
+!*/
+!input
+!*.py
+!*.rs
+!*.md
+
 *helper*
