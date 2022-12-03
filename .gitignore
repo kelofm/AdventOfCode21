@@ -4,5 +4,6 @@
 !*.py
 !*.rs
 !*.md
+!Cargo.toml
 
 *helper*

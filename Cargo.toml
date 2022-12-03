@@ -1,0 +1,2 @@
+[workspace]
+members = ["22/day_*/part_*"]
