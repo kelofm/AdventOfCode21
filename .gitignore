@@ -3,6 +3,7 @@
 !input
 !*.py
 !*.rs
+!*.hs
 !*.md
 !Cargo.toml
 
