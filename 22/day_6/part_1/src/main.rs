@@ -46,13 +46,11 @@ fn main()
     let base: usize = 'a' as usize;
     let idSize: usize = 4;
 
-    let maybeMessage = fs::read_to_string("input");
-    match maybeMessage {
+    match fs::read_to_string("input") {
         Ok(message) => {
             let mut hash: usize = 1;
             for c in message.chars().take(idSize) {
-                let maybePrime = primes.iter().nth(c as usize - base);
-                match maybePrime {
+                match primes.iter().nth(c as usize - base) {
                     Some(prime) => hash *= prime,
                     None => {
                         println!("Prime associated with '{}' not found", c);
@@ -61,8 +59,12 @@ fn main()
                 } // maybePrime
             } // for first couple chars in message
             for (index, (front, back)) in message.chars().zip(message.chars().skip(idSize)).enumerate() {
-                let maybePrimeFront = primes.iter().nth(front as usize - base);
-                match maybePrimeFront {
+                if !isNotUnique(hash, &primes) {
+                    println!("{}", index + idSize);
+                    break;
+                }
+
+                match primes.iter().nth(front as usize - base) {
                     Some(prime) => hash /= prime,
                     None => {
                         println!("Prime associated with '{}' not found", front);
@@ -70,8 +72,7 @@ fn main()
                     },
                 }
 
-                let maybePrimeBack = primes.iter().nth(back as usize - base);
-                match maybePrimeBack {
+                match primes.iter().nth(back as usize - base) {
                     Some(prime) => {
                             hash *= prime;
                     },
@@ -80,11 +81,6 @@ fn main()
                         break;
                     }
                 } // maybePrime
-
-                if !isNotUnique(hash, &primes) {
-                    println!("{}", index + idSize + 1);
-                    break;
-                }
             } // for index, (front, back) in enumerate(zip(message, offsetMessage))
         },
         Err(error) => {
