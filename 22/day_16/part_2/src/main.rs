@@ -41,43 +41,35 @@ struct State {
     node: NodeID,
     turn: i64,
     score: i64,
-    destinations: HashMap<NodeID,(i64,i64)> // {id, (distance, score)}
+    destinations: Vec<(NodeID,i64,i64)> // {id, distance, score)}
 }
+
 
 
 impl Graph
 {
     // Return a map of node IDs and their distances + discounted scores
-    fn getScoresFrom(&self, begin: &NodeID, turn: i64) -> HashMap<NodeID,(i64, i64)>
+    fn getScoresFrom(&self, begin: NodeID, turn: i64) -> Vec<(NodeID, i64, i64)>
     {
         // Init
-        let mut visited: HashSet<NodeID> = HashSet::from([begin.clone()]);
-        let mut map: HashMap<NodeID,(i64,i64)> = Default::default();
-        for id in self.map.keys() {
-            if id == begin {
-                map.insert(id.clone(), (0, 0));
-            } else {
-                map.insert(id.clone(), (i64::MAX, 0));
-            }
-        }
+        let mut toVisit: HashSet<&NodeID> = HashSet::from([&begin]);
+        let mut map: HashMap<&NodeID,(i64,i64)> = self.map.iter()
+                                                          .map(|(id, _)| (id, (if id == &begin {0} else {i64::MAX}, 0)))
+                                                          .collect();
 
-        let mut toVisit: HashSet<NodeID> = HashSet::from([begin.clone()]);
         loop {
-            if let Some(id) = toVisit.iter().next().cloned() {
-                toVisit.remove(&id);
-                visited.insert(id.clone());
-                let node = &self.map[&id];
-                let current = map[&id].clone();
+            if let Some(id) = toVisit.iter().cloned().next() {
+                toVisit.remove(id);
+                let node = &self.map[id];
+                let current = map[&id];
                 for edge in node.edges.iter() {
                     if let Some(n) = map.get_mut(&edge.destination) {
                         let distance = current.0 + edge.length;
                         if distance < n.0 {
                             n.0 = distance;
                             n.1 = (END - turn - distance) * self.map[&edge.destination].value;
+                            toVisit.insert(&edge.destination);
                         }
-                    }
-                    if !visited.contains(&edge.destination) {
-                        toVisit.insert(edge.destination.clone());
                     }
                 } // for edge in edges
             } else {
@@ -85,34 +77,35 @@ impl Graph
             }
         } // while true
 
-        return map;
+        return map.iter()
+                  .map(|(id, properties)| (id.clone().clone(), properties.0, properties.1))
+                  .collect();
     }
 
-    fn findMaximumScore(&self, begin: &NodeID) -> Vec<State>
+
+    fn findMaximumScore(&self, begin: &NodeID) -> i64
     {
         let mut beginState = State {
             node: begin.clone(),
             turn: 0,
             score: 0,
-            destinations: self.getScoresFrom(begin, 0)
+            destinations: self.getScoresFrom(begin.clone(), 0)
         };
-        beginState.destinations.retain(|id, _| id != begin);
+        beginState.destinations.retain(|(id, _, _)| id != begin);
         let mut states: Vec<State> = Vec::from([beginState.clone()]);
-        let mut solution: Vec<State> = states.clone();
+        let mut solution: i64 = 0;
 
         loop {
-            match states.last().cloned() {
+            match states.last_mut() {
                 None => {
                     break; // <== states exhausted
                 },
                 Some(state) => {
-                    match state.destinations.iter().next() {
+                    match state.destinations.pop() {
                         None => {
                             states.pop(); // <== no nodes left to explore
                         },
-                        Some((id, (distance, score))) => {
-                            let numberOfStates = states.len();
-                            states[numberOfStates - 1].destinations.remove(id); // <== remove destination as visited
+                        Some((id, distance, score)) => {
                             let nextTurn = state.turn + distance;
                             if nextTurn < END {
                                 let nextScore = state.score + score;
@@ -120,14 +113,12 @@ impl Graph
                                     node: id.clone(),
                                     turn: nextTurn,
                                     score: nextScore,
-                                    destinations: self.getScoresFrom(id, nextTurn)
+                                    destinations: self.getScoresFrom(id.clone(), nextTurn)
                                         .into_iter()
-                                        .filter(|(ID, _)| id != ID && !states.iter().any(|s| &s.node == ID)) // <== filter visited nodes
+                                        .filter(|(ID, _, _)| &id != ID && !states.iter().any(|s| &s.node == ID)) // <== filter visited nodes
                                         .collect()
                                 }); // push state
-                                if solution[solution.len() - 1].score < nextScore {
-                                    solution = states.clone();
-                                } // update the solution if the current path is better
+                                solution = solution.max(nextScore);
                             } // if nextTurn < END
                         } // popped a destination node
                     } // try popping a destination node
@@ -157,9 +148,9 @@ impl Graph
         }; // let masterGraph
 
         // Remove isolated nodes and edges to them
-        let destinations: Vec<NodeID> = graph.getScoresFrom(&begin, 0).into_iter()
-                                                                      .map(|(id, _)| id)
-                                                                      .collect();
+        let destinations: Vec<NodeID> = graph.getScoresFrom(begin.clone(), 0).into_iter()
+                                                                             .map(|(id, _, _)| id)
+                                                                             .collect();
         graph.map.retain(|id, _| destinations.contains(&id));
         for node in graph.map.values_mut() {
             node.edges.retain(|edge| destinations.contains(&edge.destination));
@@ -228,48 +219,30 @@ fn main()
                 id.clone(),
                 Node {
                     value: node.value,
-                    edges: graph.getScoresFrom(id, 0).iter()
-                                                     .filter(|(_, properties)| 0 < properties.1)
-                                                     .map(|(key, properties)| Edge {
-                                                         destination: key.clone(),
-                                                         length: properties.0})
-                                                     .collect()
+                    edges: graph.getScoresFrom(id.clone(), 0).iter()
+                                                             .filter(|(_, _, score)| 0 < score.clone())
+                                                             .map(|(ID, distance, _)| Edge {
+                                                                 destination: ID.clone(),
+                                                                 length: distance.clone()})
+                                                             .collect()
                 } // construct a Node
             ); // insert into tmp graph
         } // for id, node in graph
         graph = tmp;
     }
 
-    let beginState = State {
-        node: begin.clone(),
-        turn: 0,
-        score: 0,
-        destinations: Default::default()
-    };
-    let mut solution: [Vec<State>;2] = [Vec::from([beginState.clone()]), Vec::from([beginState.clone()])];
+    let mut score: i64 = 0;
     let nodes: Vec<NodeID> = graph.map.iter().map(|(id, _)| id).cloned().collect();
     for masterSetSize in 1..(nodes.len() as f32 / 2.0).ceil() as usize + 1 {
-        println!("Master set size: {masterSetSize} / {}", nodes.len());
         for masterSet in nodes.iter().combinations(masterSetSize) {
             let slaveSet = nodes.iter().filter(|id| !masterSet.contains(&id)).collect();
-            let masterSolution = graph.makeSubGraph(&begin, &masterSet).findMaximumScore(&begin);
-            let slaveSolution = graph.makeSubGraph(&begin, &slaveSet).findMaximumScore(&begin);
-            if solution.iter().map(|s| s[s.len()-1].score).sum::<i64>() < [&masterSolution, &slaveSolution].iter().map(|s| s[s.len() - 1].score).sum() {
-                solution = [masterSolution, slaveSolution];
+            let masterScore = graph.makeSubGraph(&begin, &masterSet).findMaximumScore(&begin);
+            let slaveScore = graph.makeSubGraph(&begin, &slaveSet).findMaximumScore(&begin);
+            if score < masterScore + slaveScore {
+                score = masterScore + slaveScore;
             }
         } // for masterSet
     } // for masterSetSize
 
-    println!("node\tturn\tscore\t| node\tturn\tscore");
-    for i in 0..solution[0].len().max(solution[1].len()) {
-        if let Some(state) = solution[0].get(i) {
-            print!("{}\t{}\t{}", state.node, state.turn, state.score);
-        } else {
-            print!("\t\t");
-        }
-        if let Some(state) = solution[1].get(i) {
-            print!("\t| {}\t{}\t{}", state.node, state.turn, state.score);
-        }
-        println!();
-    }
+    println!("{score}");
 }
